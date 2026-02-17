@@ -34,8 +34,12 @@ languages = {
     }
 }
 
-# 2. Тіл таңдау мәзірі (Sidebar)
-lang_choice = st.sidebar.selectbox("Language / Тіл / Язык", ["KZ", "RU", "EN"])
+# 2. Тіл таңдауды басты беттің жоғарғы жағына шығару (Sidebar-сыз)
+col1, col2 = st.columns([4, 1]) # Бетті екіге бөлу
+
+with col2:
+    lang_choice = st.selectbox("🌐", ["KZ", "RU", "EN"], label_visibility="collapsed")
+
 t = languages[lang_choice]
 
 # 3. Интерфейс
