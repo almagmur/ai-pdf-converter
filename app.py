@@ -2,90 +2,72 @@ import streamlit as st
 import pymupdf4llm
 import tempfile
 import os
+import google.generativeai as genai
 
-# 1. Тілдер сөздігі (Multi-file үшін мәтіндер қосылды)
+# 1. AI Баптаулары (API Key-ді осы жерге қоясың)
+# Назар аудар: API кілтті Streamlit secrets-ке салған дұрыс
+GOOGLE_API_KEY = "AIzaSyBqjnIpUnBOegklTpoIsLo2suvl2fk3ibg" 
+genai.configure(api_key=GOOGLE_API_KEY)
+model = genai.GenerativeModel('gemini-1.5-flash')
+
+# 2. Тілдер сөздігі (AI үшін мәтіндер)
 languages = {
     "KZ": {
-        "title": "🤖 AI-ready Multi-Converter",
-        "desc": "Бірнеше PDF-ті бірден Markdown-ға айналдырыңыз.",
-        "upload_label": "PDF файлдарды таңдаңыз (бірнешеу болады)",
-        "spinner": "Файлдар өңделуде...",
-        "success": "Барлық файлдар дайын!",
-        "result_label": "Markdown нәтижесі:",
-        "download_btn": "Markdown файлды жүктеп алу",
+        "title": "🤖 AI-ready Converter + Chat",
+        "upload_label": "PDF файлды таңдаңыз",
+        "chat_header": "📄 Осы файл бойынша сұрақ қойыңыз:",
+        "chat_placeholder": "Бұл құжат не туралы?",
         "footer": "Жасалған: Almagmur"
     },
     "RU": {
-        "title": "🤖 AI-ready Multi-Converter",
-        "desc": "Превращайте несколько PDF в Markdown за один раз.",
-        "upload_label": "Выберите PDF файлы (можно несколько)",
-        "spinner": "Идет обработка файлов...",
-        "success": "Все файлы готовы!",
-        "result_label": "Результат Markdown:",
-        "download_btn": "Скачать Markdown файл",
+        "title": "🤖 AI-ready Converter + Chat",
+        "upload_label": "Выберите PDF файл",
+        "chat_header": "📄 Задайте вопрос по этому файлу:",
+        "chat_placeholder": "О чем этот документ?",
         "footer": "Создано: Almagmur"
     },
     "EN": {
-        "title": "🤖 AI-ready Multi-Converter",
-        "desc": "Convert multiple PDFs into Markdown instantly.",
-        "upload_label": "Choose PDF files (multiple allowed)",
-        "spinner": "Processing files...",
-        "success": "All files done!",
-        "result_label": "Markdown Result:",
-        "download_btn": "Download Markdown file",
+        "title": "🤖 AI-ready Converter + Chat",
+        "upload_label": "Choose a PDF file",
+        "chat_header": "📄 Ask a question about this file:",
+        "chat_placeholder": "What is this document about?",
         "footer": "Created by: Almagmur"
     }
 }
 
-# 2. CSS стильдері
-st.markdown("""
-    <style>
-    .stButton>button { width: 100%; border-radius: 12px; background-color: #FF4B4B; color: white; font-weight: bold; }
-    .custom-footer { text-align: center; color: #808495; padding: 20px; font-size: 14px; margin-top: 50px; border-top: 1px solid #e6e9ef; }
-    </style>
-    """, unsafe_allow_html=True)
-
-# 3. Тіл таңдау
+# (CSS стильдері мен тіл таңдау бұрынғыдай қалады...)
 col1, col2 = st.columns([4, 1])
 with col2:
     lang_choice = st.selectbox("🌐", ["KZ", "RU", "EN"], label_visibility="collapsed")
 t = languages[lang_choice]
 
-# 4. Интерфейс
 st.title(t["title"])
-st.write(t["desc"])
 
-# accept_multiple_files=True — осы жерде сиқыр басталады!
-uploaded_files = st.file_uploader(t["upload_label"], type="pdf", accept_multiple_files=True)
+uploaded_file = st.file_uploader(t["upload_label"], type="pdf")
 
-if uploaded_files:
-    all_md_text = "" # Барлық файлдың мәтіні осында жиналады
+if uploaded_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+        tmp_file.write(uploaded_file.getvalue())
+        tmp_path = tmp_file.name
+
+    md_text = pymupdf4llm.to_markdown(tmp_path)
+    os.remove(tmp_path)
+
+    st.success("✅ Файл өңделді!")
     
-    with st.spinner(t["spinner"]):
-        for uploaded_file in uploaded_files:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                tmp_file.write(uploaded_file.getvalue())
-                tmp_path = tmp_file.name
+    # --- AI CHAT БӨЛІМІ ---
+    st.markdown("---")
+    st.subheader(t["chat_header"])
+    
+    user_question = st.text_input(t["chat_placeholder"])
+    
+    if user_question:
+        with st.spinner("AI ойланып жатыр..."):
+            # Файлдың мәтінін сұрақпен бірге AI-ға жібереміз
+            full_prompt = f"Контекст (құжат мәтіні):\n{md_text}\n\nСұрақ: {user_question}"
+            response = model.generate_content(full_prompt)
+            st.write("🤖 **AI Жауабы:**")
+            st.info(response.text)
+    # ----------------------
 
-            try:
-                # Әр файлдың атын тақырып ретінде қосамыз
-                all_md_text += f"\n\n# FILE: {uploaded_file.name}\n"
-                all_md_text += pymupdf4llm.to_markdown(tmp_path)
-            except Exception as e:
-                st.error(f"Error in {uploaded_file.name}: {e}")
-            finally:
-                if os.path.exists(tmp_path):
-                    os.remove(tmp_path)
-        
-        st.success(t["success"])
-        st.text_area(t["result_label"], all_md_text, height=400)
-
-        st.download_button(
-            label=t["download_btn"],
-            data=all_md_text,
-            file_name="all_converted_data.md",
-            mime="text/markdown"
-        )
-
-# 5. Footer
 st.markdown(f'<div class="custom-footer">© 2026 AI Converter | {t["footer"]}</div>', unsafe_allow_html=True)
