@@ -2,3 +2,4 @@ streamlit
 pymupdf4llm
 google-generativeai
 python-docx
+streamlit-option-menu
