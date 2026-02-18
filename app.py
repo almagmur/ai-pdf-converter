@@ -5,7 +5,7 @@ import os
 import google.generativeai as genai
 
 # 1. AI Баптаулары
-API_KEY = "AIzaSyBqjnipuNBOegklTpoIsLo2suvI2fk3ibg" 
+API_KEY = st.secrets["GEMINI_API_KEY"] 
 genai.configure(api_key=API_KEY)
 ai_model = genai.GenerativeModel('gemini-1.5-flash')
 
@@ -124,4 +124,5 @@ with p_col3:
 
 # Footer
 st.markdown("<br><p style='text-align: center; color: #4A5568;'>© 2026 Almagmur AI | Professional Edition</p>", unsafe_allow_html=True)
+
 
