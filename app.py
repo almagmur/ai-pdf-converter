@@ -4,13 +4,14 @@ import tempfile
 import os
 import google.generativeai as genai
 
-# 1. AI Баптаулары
-API_KEY = st.secrets["GEMINI_API_KEY"] 
+# 1. Gemini баптауы
+API_KEY = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=API_KEY)
-ai_model = genai.GenerativeModel('gemini-1.5-flash')
 
-st.set_page_config(page_title="Almagmur AI", page_icon="⚡", layout="wide")
-
+# 2. Бот баптауы (Тарифтер бөлімінде)
+BOT_TOKEN = st.secrets["TELEGRAM_BOT_TOKEN"]
+BOT_USERNAME = "AlmagmurSupport_bot"
+BOT_LINK = f"https://t.me/{BOT_USERNAME}"
 # 2. Дизайн (Dark Premium + Pricing Cards)
 st.markdown("""
     <style>
@@ -124,5 +125,6 @@ with p_col3:
 
 # Footer
 st.markdown("<br><p style='text-align: center; color: #4A5568;'>© 2026 Almagmur AI | Professional Edition</p>", unsafe_allow_html=True)
+
 
 
